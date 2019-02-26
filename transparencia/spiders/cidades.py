@@ -57,7 +57,8 @@ class CidadesSpider(scrapy.Spider):
 
         le = LinkExtractor(allow=("transparencia", "transparente", "Transparencia"))
         links = [link.url for link in le.extract_links(response)]
-        il.add_value("transparency_url", links)
+        il.add_value("transparency_url", links)  # most likely URL
+        il.add_value("all_transparency_url", links)
 
         le_twitter = LinkExtractor(allow_domains=("twitter.com"))
         twitter_links = [link.url for link in le_twitter.extract_links(response)]
@@ -73,7 +74,9 @@ class CidadesSpider(scrapy.Spider):
 
         if failure.check(HttpError):
             response = failure.value.response
-            self.logger.error("HttpError on {}".format(response.url))
+            self.logger.error(
+                "HttpError on {} - Status code {}".format(response.url, response.status)
+            )
         elif failure.check(DNSLookupError):
             request = failure.request
             self.logger.error("DNSLookupError on {}".format(request.url))
