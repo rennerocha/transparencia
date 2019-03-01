@@ -51,8 +51,10 @@ class CidadesSpider(scrapy.Spider):
                 errback=self.failed_city,
             )
         else:
-            self.logger.warning("Unable to find URL for {}".format(item.get("name")))
-            yield item
+            is_city_url = response.xpath('//table[@class="infobox"]//td[contains(., "Município")]')
+            if is_city_url:
+                self.logger.warning("Unable to find URL for {}".format(item.get("name")))
+                yield item
 
     def parse_city(self, response):
         il = CityItemLoader(item=response.meta.get("item"))
