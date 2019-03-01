@@ -1,4 +1,5 @@
 import re
+from urllib.parse import urlparse
 
 import scrapy
 from scrapy.loader import ItemLoader
@@ -17,12 +18,27 @@ def remove_dupes(values):
 
 
 def remove_invalid_twitter_urls(values):
-    urls = remove_dupes([url.lower() for url in values])
+    forbidden_usernames = ["", "share", "intent", "home", "search"]
+    urls = remove_dupes([value.lower() for value in values])
+    usernames = []
     for url in urls:
-        user_m = re.match("twitter\.com\/(?P<username>@?[\w]*)$", url)
+        parsed_url = urlparse(url)
+
+        path = parsed_url.path
+        user_m = re.match("\/[@#!]?(?P<username>[\w]*)\/?.*", path)
         if user_m:
-            return 'https://twitter.com/{}'.format(user_m.group("username"))
-    return values
+            usernames.append(user_m.group("username").lower())
+
+        fragment = parsed_url.fragment
+        user_m = re.match("!\/(?P<username>[\w]*)\/?.*", fragment)
+        if user_m:
+            usernames.append(user_m.group("username").lower())
+
+    usernames = remove_dupes(
+        [username for username in usernames if username not in forbidden_usernames]
+    )
+    if usernames:
+        return "https://twitter.com/{}".format(usernames.pop())
 
 
 class CityItem(scrapy.Item):
