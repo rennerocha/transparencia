@@ -40,7 +40,6 @@ class CidadesSpider(scrapy.Spider):
             "url",
             '//a[contains(., "Sítio oficial") and contains(@href, ".gov.br")]/@href',
         )
-
         item = il.load_item()
 
         url = item.get("url")
@@ -52,13 +51,19 @@ class CidadesSpider(scrapy.Spider):
                 errback=self.failed_city,
             )
         else:
-            self.logger.warning('Unable to find URL for {}'.format(item.get('name')))
+            self.logger.warning("Unable to find URL for {}".format(item.get("name")))
             yield item
 
     def parse_city(self, response):
         il = CityItemLoader(item=response.meta.get("item"))
 
-        le = LinkExtractor(allow=("transparencia", "transparente", "Transparencia"))
+        le = LinkExtractor(
+            restrict_xpaths=(
+                "//a[contains(translate(., 'abcdefghijklmnopqrstuvwxyzê', 'ABCDEFGHIJKLMNOPQRSTUVWXYZÊ'), 'TRANSPARÊNCIA') and not(@href='#')]",
+                "//a[contains(translate(., 'abcdefghijklmnopqrstuvwxyzê', 'ABCDEFGHIJKLMNOPQRSTUVWXYZÊ'), 'TRANSPARENTE') and not(@href='#')]",
+                "//a[contains(translate(., 'abcdefghijklmnopqrstuvwxyzê', 'ABCDEFGHIJKLMNOPQRSTUVWXYZÊ'), 'DADOS ABERTOS') and not(@href='#')]",
+            )
+        )
         links = [link.url for link in le.extract_links(response)]
         il.add_value("transparency_url", links)  # most likely URL
         il.add_value("all_transparency_url", links)
@@ -75,9 +80,9 @@ class CidadesSpider(scrapy.Spider):
 
         if failure.check(HttpError):
             response = failure.value.response
-            error_message = " - ".join([
-                error_message, "Status Code {}".format(response.status)
-            ])
+            error_message = " - ".join(
+                [error_message, "Status Code {}".format(response.status)]
+            )
             self.logger.error(error_message)
         elif failure.check(DNSLookupError):
             request = failure.request
