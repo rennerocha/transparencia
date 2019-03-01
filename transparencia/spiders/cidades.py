@@ -71,15 +71,14 @@ class CidadesSpider(scrapy.Spider):
 
     def failed_city(self, failure):
         error_message = failure.getErrorMessage()
-
         il = CityItemLoader(item=failure.request.meta.get("item", {}))
-        il.add_value("comments", error_message)
 
         if failure.check(HttpError):
             response = failure.value.response
-            self.logger.error(
-                "HttpError on {} - Status code {}".format(response.url, response.status)
-            )
+            error_message = " - ".join([
+                error_message, "Status Code {}".format(response.status)
+            ])
+            self.logger.error(error_message)
         elif failure.check(DNSLookupError):
             request = failure.request
             self.logger.error("DNSLookupError on {}".format(request.url))
@@ -89,4 +88,5 @@ class CidadesSpider(scrapy.Spider):
         else:
             self.logger.error(error_message)
 
+        il.add_value("comments", error_message)
         yield il.load_item()
